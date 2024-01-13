@@ -6,21 +6,22 @@ import com.legacy.lms.dto.book.BookCreateDto;
 import com.legacy.lms.dto.book.BookUpdateDto;
 import com.legacy.lms.entity.Book;
 import com.legacy.lms.entity.BorrowingRecord;
+import com.legacy.lms.entity.Patron;
 import com.legacy.lms.error.exceptions.BadRequestException;
 import com.legacy.lms.repository.BookRepository;
 import com.legacy.lms.repository.BorrowingRecordRepository;
 import com.legacy.lms.util.helper.PaginationResult;
+import com.legacy.lms.util.localization.Tokens;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import com.legacy.lms.util.localization.Tokens;
 
 import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.Optional;
 
 @Service
 public class BookService {
@@ -97,17 +98,17 @@ public class BookService {
 
     @Transactional
     public void borrowBook(BorrowBookRequest request) {
-        var book = getBook(request.getBookId());
-        var patron = patronService.getPatron(request.getPatronId());
+        Book book = getBook(request.getBookId());
+        Patron patron = patronService.getPatron(request.getPatronId());
 
         // Check if the book is already borrowed
-        var borrowingRecord = borrowingRecordRepository.findBorrowedBook(book.getId());
-        if (borrowingRecord != null) {
+        Optional<BorrowingRecord> borrowingRecord = borrowingRecordRepository.findBorrowedBook(book.getId());
+        if (borrowingRecord.isPresent()) {
             throw new BadRequestException("Book is already borrowed");
         }
 
         // Handle the borrowing of the book by the patron
-        var newBorrowingRecord = new BorrowingRecord();
+        BorrowingRecord newBorrowingRecord = new BorrowingRecord();
         newBorrowingRecord.setBook(book);
         newBorrowingRecord.setPatron(patron);
         newBorrowingRecord.setBorrowDate(LocalDateTime.now());
@@ -117,14 +118,16 @@ public class BookService {
 
     @Transactional
     public void returnBook(ReturnBookRequest request) {
-        var book = getBook(request.getBookId());
-        var patron = patronService.getPatron(request.getPatronId());
+        Book book = getBook(request.getBookId());
+        Patron patron = patronService.getPatron(request.getPatronId());
 
         // Check if the book is actually borrowed by the patron
-        var borrowingRecord = borrowingRecordRepository.findBorrowedBookByPatron(book.getId(), patron.getId());
-        if (borrowingRecord == null) {
+        Optional<BorrowingRecord> borrowingRecordOptional = borrowingRecordRepository.findBorrowedBookByPatron(book.getId(), patron.getId());
+        if (borrowingRecordOptional.isEmpty()) {
             throw new BadRequestException("This book is not borrowed by this patron");
         }
+
+        BorrowingRecord borrowingRecord = borrowingRecordOptional.get();
 
         // Handle the return of the book by the patron
         borrowingRecord.setReturnDate(LocalDateTime.now());

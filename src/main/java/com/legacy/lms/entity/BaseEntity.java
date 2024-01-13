@@ -12,39 +12,35 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@Setter
 @Getter
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 public class BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     protected Long id;
 
-    @Setter
     @CreatedDate
     protected LocalDateTime createdAt;
 
-    @Setter
     @CreatedBy
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id")
     protected User createdBy;
 
-    @Setter
     @LastModifiedDate
     protected LocalDateTime updatedAt;
 
-    @Setter
     @LastModifiedBy
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by_user_id")
     protected User updatedBy;
 
-    @Setter
     @Column
     protected LocalDateTime deletedAt;
 
-    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "deleted_by_user_id")
     protected User deletedBy;
